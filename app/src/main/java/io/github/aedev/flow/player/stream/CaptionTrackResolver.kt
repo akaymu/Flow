@@ -2,10 +2,13 @@ package io.github.aedev.flow.player.stream
 
 import android.util.Log
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
+import java.net.URLEncoder
 import java.util.Locale
 
 object CaptionTrackResolver {
     private const val TAG = "CaptionTrackResolver"
+    private const val SUBS_POT_CLIENT = "WEB"
+    private val SubsPotParams = listOf("pot", "potc", "c")
 
     /** Marks a track produced by YouTube's machine translation of another caption track. */
     const val TRANSLATED_PARAM = "tlang"
@@ -113,6 +116,28 @@ object CaptionTrackResolver {
         retained.add("fmt=${format.fmtQueryValue ?: CaptionFormat.SRV3.fmtQueryValue}")
 
         return "$path?${retained.joinToString("&")}"
+    }
+
+    /**
+     * Binds a timedtext URL to a WEB BotGuard token minted for the same video, the way the web
+     * player sends it. Without one, `tlang` fetches are refused with 429 while the untranslated
+     * track loads fine. The token is content-bound to the video id, so it is the player-request
+     * token, and `c` must name the client it was minted under.
+     */
+    fun withSubsPoToken(
+        url: String,
+        poToken: String,
+    ): String {
+        val separatorIndex = url.indexOf('?')
+        val path = if (separatorIndex >= 0) url.substring(0, separatorIndex) else url
+        val query = if (separatorIndex >= 0) url.substring(separatorIndex + 1) else ""
+        val retained =
+            query
+                .split('&')
+                .filter { it.isNotEmpty() && SubsPotParams.none { name -> it.isParam(name) } }
+        val pot = URLEncoder.encode(poToken, Charsets.UTF_8.name())
+        val attested = retained + "pot=$pot" + "potc=1" + "c=$SUBS_POT_CLIENT"
+        return "$path?${attested.joinToString("&")}"
     }
 
     private fun String.isParam(name: String): Boolean = startsWith("$name=", ignoreCase = true) || equals(name, ignoreCase = true)

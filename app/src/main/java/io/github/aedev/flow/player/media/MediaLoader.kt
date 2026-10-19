@@ -13,6 +13,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
@@ -475,6 +476,7 @@ class MediaLoader(
         if (mediaSource == null || captions.isEmpty()) return mediaSource
 
         val localDataSourceFactory by lazy { DefaultDataSource.Factory(context) }
+        val attestedDataSourceFactory by lazy { ResolvingDataSource.Factory(dataSourceFactory, TranslatedCaptionAttestation) }
 
         val subtitleSources =
             captions.mapIndexedNotNull { index, caption ->
@@ -499,10 +501,10 @@ class MediaLoader(
                         .build()
 
                 val factory =
-                    if (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) {
-                        dataSourceFactory
-                    } else {
-                        localDataSourceFactory
+                    when {
+                        !uri.scheme.equals("http", true) && !uri.scheme.equals("https", true) -> localDataSourceFactory
+                        caption.isTranslated -> attestedDataSourceFactory
+                        else -> dataSourceFactory
                     }
                 SingleSampleMediaSource
                     .Factory(factory)

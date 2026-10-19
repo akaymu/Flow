@@ -243,4 +243,41 @@ class CaptionTrackAutoTranslationTest {
         assertEquals(CaptionFormat.VTT, translated.format)
         assertTrue(translated.url.contains("fmt=vtt"))
     }
+
+    @Test
+    fun `a subs po token is attached with its client and keeps the signed params`() {
+        val url = "$BASE_URL&tlang=tr"
+
+        val attested = CaptionTrackResolver.withSubsPoToken(url, "tok")
+
+        assertTrue(attested.startsWith("$BASE_URL&tlang=tr&"))
+        assertTrue(attested.endsWith("pot=tok&potc=1&c=WEB"))
+    }
+
+    @Test
+    fun `re-attesting replaces the previous token instead of stacking a second one`() {
+        val once = CaptionTrackResolver.withSubsPoToken("$BASE_URL&tlang=tr", "first")
+
+        val twice = CaptionTrackResolver.withSubsPoToken(once, "second")
+
+        assertEquals("exactly one pot expected: $twice", 1, twice.split("&pot=").size - 1)
+        assertEquals("exactly one potc expected: $twice", 1, twice.split("&potc=").size - 1)
+        assertEquals("exactly one c expected: $twice", 1, twice.split("&c=").size - 1)
+        assertTrue(twice.contains("pot=second"))
+        assertFalse(twice.contains("first"))
+    }
+
+    @Test
+    fun `a token with url-reserved characters is encoded`() {
+        val attested = CaptionTrackResolver.withSubsPoToken(BASE_URL, "a+b/c=")
+
+        assertTrue(attested.contains("pot=a%2Bb%2Fc%3D&"))
+    }
+
+    @Test
+    fun `params that merely start with c are not mistaken for the client param`() {
+        val attested = CaptionTrackResolver.withSubsPoToken(BASE_URL, "tok")
+
+        assertTrue(attested.contains("caps=asr"))
+    }
 }
