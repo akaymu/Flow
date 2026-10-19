@@ -176,7 +176,6 @@ private fun Context.sponsorCategoryLabel(category: String): String = sponsorCate
 internal fun SubtitleLoadErrorEffect(
     context: Context,
     subtitles: List<SubtitleOption>,
-    rememberLanguage: (String) -> Unit,
 ) {
     val currentSubtitles by rememberUpdatedState(subtitles)
     LaunchedEffect(Unit) {
@@ -189,8 +188,10 @@ internal fun SubtitleLoadErrorEffect(
                     failedLanguage = failure.language,
                     wasTranslated = failure.isTranslated,
                 )
+            // The fallback is a stand-in for this video only; persisting it would replace the
+            // translation language the user chose with the source track's, for every video after.
             val message =
-                if (fallback != null && SubtitleSelection.applyAt(options, fallback, rememberLanguage)) {
+                if (fallback != null && SubtitleSelection.applyAt(options, fallback, rememberLanguage = {})) {
                     context.getString(R.string.subtitle_translation_unavailable, options[fallback].label)
                 } else {
                     SubtitleSelection.disable()

@@ -347,7 +347,6 @@ fun VideoPlayerHost(
     SubtitleLoadErrorEffect(
         context = context,
         subtitles = playerState.availableSubtitles,
-        rememberLanguage = rememberSubtitleLanguage,
     )
 
     OrientationListenerEffect(
