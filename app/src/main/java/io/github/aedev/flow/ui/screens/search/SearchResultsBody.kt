@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -140,7 +141,7 @@ internal fun ColumnScope.SearchResultsBody(
 
             pagingItems.itemCount == 0 -> {
                 FlowEmptyState(
-                    title = stringResource(filters.emptyResultsRes()),
+                    title = filters.emptyResultsTitle(),
                     icon = Icons.Rounded.Search,
                 )
             }
@@ -156,10 +157,12 @@ internal fun ColumnScope.SearchResultsBody(
     }
 }
 
-private fun SearchFilter.emptyResultsRes(): Int =
+// The watch-state titles are single-quantity plurals because that is how the translation platform stores them.
+@Composable
+private fun SearchFilter.emptyResultsTitle(): String =
     when {
-        !contentType.supportsVideoFilters() -> R.string.no_results_found
-        watchState == WatchState.WATCHED -> R.string.search_watch_empty_watched
-        watchState == WatchState.UNWATCHED -> R.string.search_watch_empty_unwatched
-        else -> R.string.no_results_found
+        !contentType.supportsVideoFilters() -> stringResource(R.string.no_results_found)
+        watchState == WatchState.WATCHED -> pluralStringResource(R.plurals.search_watch_empty_watched, 1)
+        watchState == WatchState.UNWATCHED -> pluralStringResource(R.plurals.search_watch_empty_unwatched, 1)
+        else -> stringResource(R.string.no_results_found)
     }
