@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player.media
 
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
@@ -22,14 +23,17 @@ internal object TranslatedCaptionAttestation : ResolvingDataSource.Resolver {
     override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
         val url = dataSpec.uri.toString()
         val videoId = StreamDenialClassifier.queryParam(url, "v")?.takeIf { it.isNotBlank() } ?: return dataSpec
+        val startMs = SystemClock.elapsedRealtime()
         val poToken =
             runBlocking { WebPoTokenSession.mintBounded(videoId) }
                 ?.playerRequestPoToken
                 ?.takeIf { it.isNotBlank() }
+        val mintMs = SystemClock.elapsedRealtime() - startMs
         if (poToken == null) {
-            Log.w(TAG, "No PO token for a translated caption; fetching it unattested")
+            Log.w(TAG, "No PO token for a translated caption after ${mintMs}ms; fetching it unattested")
             return dataSpec
         }
+        Log.w(TAG, "Translated caption attested: pot len=${poToken.length} after ${mintMs}ms")
         return dataSpec.withUri(Uri.parse(CaptionTrackResolver.withSubsPoToken(url, poToken)))
     }
 }

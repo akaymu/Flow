@@ -75,15 +75,34 @@ internal object SubtitleLoadDiagnostics {
  * `treatLoadErrorsAsEndOfStream` turns that failure into an empty track, so without this the
  * user picks a language and simply gets nothing, with no clue that anything went wrong.
  * `wasCanceled` is Media3's signal that the loader chose not to retry, i.e. this is final.
+ *
+ * A translated fetch also reports its successful loads: YouTube can answer one with a 200 that
+ * holds no cues, which is otherwise indistinguishable from a track that is still loading.
  */
 @UnstableApi
 internal fun subtitleLoadFailureReporter(
     index: Int,
     label: String,
     url: String,
+    isTranslated: Boolean,
     onGaveUp: (index: Int, label: String) -> Unit,
 ): MediaSourceEventListener =
     object : MediaSourceEventListener {
+        override fun onLoadCompleted(
+            windowIndex: Int,
+            mediaPeriodId: MediaSource.MediaPeriodId?,
+            loadEventInfo: LoadEventInfo,
+            mediaLoadData: MediaLoadData,
+        ) {
+            if (!isTranslated) return
+            val contentType =
+                loadEventInfo.responseHeaders.entries
+                    .firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }
+                    ?.value
+                    ?.firstOrNull()
+            Log.w(TAG, "Subtitle '$label' loaded: bytes=${loadEventInfo.bytesLoaded} type=${contentType ?: "none"}")
+        }
+
         override fun onLoadError(
             windowIndex: Int,
             mediaPeriodId: MediaSource.MediaPeriodId?,

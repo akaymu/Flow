@@ -516,7 +516,7 @@ class MediaLoader(
                     .also { source ->
                         source.addEventListener(
                             Handler(Looper.getMainLooper()),
-                            subtitleLoadFailureReporter(index, label, subtitleUrl) { failedIndex, failedLabel ->
+                            subtitleLoadFailureReporter(index, label, subtitleUrl, caption.isTranslated) { failedIndex, failedLabel ->
                                 onSubtitleLoadFailed?.invoke(failedIndex, failedLabel)
                             },
                         )
